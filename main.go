@@ -7,13 +7,15 @@ import (
 )
 
 func main() {
-	tracer.Start(tracer.WithServiceName("my-service"))
-	
-	myConfig := config.GetConfig()
+	tracer.Start(tracer.WithDebugMode(true))
 
-	myApp := &app.App{}
-	myApp.Initialize(myConfig)
-	myApp.Run(":3000")
-	
-	defer tracer.Stop()
+        fmt.Println("1111 1")
+
+        myConfig := config.GetConfig()
+
+        myApp := &app.App{}
+        myApp.Initialize(myConfig)
+        myApp.Run(":3000")
+        fmt.Println("22222 2")
+        defer tracer.Stop()
 }
