@@ -1,22 +1,24 @@
 package app
 
 import (
-	"fmt"
-	"log"
 	"net/http"
-
 	"handler"
 	"config"
-	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
-
+	"fmt"
+	"log"
 	_ "github.com/go-sql-driver/mysql"
+	muxtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gorilla/mux"
+	sqltrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/database/sql"
+	gormtrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/jinzhu/gorm"
+	"github.com/go-sql-driver/mysql"
 )
 
 type App struct {
-	Router *mux.Router
 	DB     *gorm.DB
 }
+
+var mux = muxtrace.NewRouter(muxtrace.WithServiceName("mux.route"))
 
 // App initialize with predefined configuration
 func (a *App) Initialize(config *config.Config) {
@@ -26,9 +28,15 @@ func (a *App) Initialize(config *config.Config) {
 		config.DB.Name,
 		config.DB.Charset)
 
-	a.DB, _ = gorm.Open(config.DB.Dialect, dbURI)
+	sqltrace.Register("mysql", &mysql.MySQLDriver{}, sqltrace.WithServiceName("mysql-test"))
 
-	a.Router = mux.NewRouter()
+	var err error = nil
+	a.DB, err = gormtrace.Open(config.DB.Dialect, dbURI)
+
+	if err != nil {
+		log.Fatal("Could not connect database "+ err.Error())
+	}
+
 	a.setRouters()
 }
 
@@ -36,33 +44,37 @@ func (a *App) Initialize(config *config.Config) {
 func (a *App) setRouters() {
 	// Routing for handling the projects
 	a.Get("/", a.GetAllTest)
+	a.Get("/lele", a.GetAllTest2)
 }
 
 // Wrap the router for GET method
 func (a *App) Get(path string, f func(w http.ResponseWriter, r *http.Request)) {
-	a.Router.HandleFunc(path, f).Methods("GET")
+	mux.HandleFunc(path, f).Methods("GET")
 }
 
 // Wrap the router for POST method
 func (a *App) Post(path string, f func(w http.ResponseWriter, r *http.Request)) {
-	a.Router.HandleFunc(path, f).Methods("POST")
+	mux.HandleFunc(path, f).Methods("POST")
 }
 
 // Wrap the router for PUT method
 func (a *App) Put(path string, f func(w http.ResponseWriter, r *http.Request)) {
-	a.Router.HandleFunc(path, f).Methods("PUT")
+	mux.HandleFunc(path, f).Methods("PUT")
 }
 
 // Wrap the router for DELETE method
 func (a *App) Delete(path string, f func(w http.ResponseWriter, r *http.Request)) {
-	a.Router.HandleFunc(path, f).Methods("DELETE")
+	mux.HandleFunc(path, f).Methods("DELETE")
 }
 
 // Run the app on it's router
 func (a *App) Run(host string) {
-	log.Fatal(http.ListenAndServe(host, a.Router))
+	http.ListenAndServe(host,mux)
 }
 
 func (a *App) GetAllTest(w http.ResponseWriter, r *http.Request) {
 	handler.GetAllTest(a.DB, w, r)
+}
+func (a *App) GetAllTest2(w http.ResponseWriter, r *http.Request) {
+	handler.GetAllTest2(a.DB, w, r)
 }
