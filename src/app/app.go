@@ -18,7 +18,7 @@ type App struct {
 	DB     *gorm.DB
 }
 
-var mux = muxtrace.NewRouter(muxtrace.WithServiceName("my_service"))
+var mux = muxtrace.NewRouter(muxtrace.WithServiceName("mux.route"))
 
 // App initialize with predefined configuration
 func (a *App) Initialize(config *config.Config) {
@@ -28,7 +28,7 @@ func (a *App) Initialize(config *config.Config) {
 		config.DB.Name,
 		config.DB.Charset)
 
-	sqltrace.Register("mysql", &mysql.MySQLDriver{}, sqltrace.WithServiceName("my_service"))
+	sqltrace.Register("mysql", &mysql.MySQLDriver{}, sqltrace.WithServiceName("mysql-test"))
 
 	var err error = nil
 	a.DB, err = gormtrace.Open(config.DB.Dialect, dbURI)
